@@ -5,6 +5,7 @@ import java.sql.DatabaseMetaData;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.Statement;
 
@@ -75,11 +76,14 @@ public class JDBC {
 		// // Ejercicio 8
 		// prueJdbc.añadirColumna("alumnos", "mana", "varchar(20)", "DEFAULT NULL");
 
-		// Ejercicio 9
-
+		
 		prueJdbc.abrirConexion("add", "localhost", "root", null);
+		
+		// Ejercicio 9
+		//prueJdbc.getInfoBD("add");
 
-		prueJdbc.getInfoBD("add");
+		// Ejercicio 10
+		prueJdbc.getDatosFromQuery();
 
 		prueJdbc.cerrarConexion();
 
@@ -421,14 +425,19 @@ public class JDBC {
 				ResultSet cvPrimarias = dbmt.getPrimaryKeys("add", null, tablas.getString(3));
 				ResultSet cvForaneas = dbmt.getExportedKeys("add", null, tablas.getString(3));
 
-				System.out.println("Claves primarias: ");
+				System.out.println(String.format("Nombre de la tabla: %s , tipo de tabla: %s",
+						tablas.getString("TABLE_NAME"), tablas.getString("TABLE_TYPE")));
+
+				System.out.print("Claves primarias: ");
 				while (cvPrimarias.next()) {
 					System.out.println(cvPrimarias.getString("COLUMN_NAME"));
 				}
-				System.out.println("Claves foranea: ");
+				System.out.print("Claves foranea: ");
 				while (cvForaneas.next()) {
-					System.out.println(cvForaneas.getString("FK_NAME"));
+					System.out.println(
+							cvForaneas.getString("FK_NAME") != null ? cvForaneas.getString("FK_NAME") : "No hay");
 				}
+				System.out.println();
 			}
 
 		} catch (
@@ -436,6 +445,28 @@ public class JDBC {
 		SQLException e) {
 			System.out.println("Error obteniendo datos " + e.getLocalizedMessage());
 		}
+	}
+
+	// ejercicio 10
+	public void getDatosFromQuery() {
+		String query = "select *, nombre as non from alumnos";
+        try (Statement stmt = conexion.createStatement();
+             ResultSet rs = stmt.executeQuery(query)) {
+
+            ResultSetMetaData rsmd = rs.getMetaData();
+            int columnCount = rsmd.getColumnCount();
+
+            for (int i = 1; i <= columnCount; i++) {             
+                System.out.println("Nombre de la columna: " + rsmd.getColumnName(i));
+                System.out.println("Alias de la columna: " + rsmd.getColumnLabel(i));
+                System.out.println("Nombre del tipo de dato: " + rsmd.getColumnTypeName(i));
+                System.out.println("Es autoincrementado: " + (rsmd.isAutoIncrement(i) ? "Si" : "No"));
+                System.out.println("Permite nulos: " + (rsmd.isNullable(i) == 0 ? "No" : "Si"));
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
 	}
 
 	public void apartadoG(String bd) {
