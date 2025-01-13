@@ -11,6 +11,7 @@ import java.sql.Statement;
 
 public class JDBC {
 	private Connection conexion;
+	private Connection conexion2;
 	private PreparedStatement ps = null; // atributo de instancia
 
 	public static void main(String[] args) throws SQLException {
@@ -76,16 +77,18 @@ public class JDBC {
 		// // Ejercicio 8
 		// prueJdbc.añadirColumna("alumnos", "mana", "varchar(20)", "DEFAULT NULL");
 
-		
-		prueJdbc.abrirConexion("add", "localhost", "root", null);
-		
+		//prueJdbc.abrirConexion("add", "localhost", "root", null);
+
 		// Ejercicio 9
 		//prueJdbc.getInfoBD("add");
-
+		
 		// Ejercicio 10
-		prueJdbc.getDatosFromQuery();
+		//prueJdbc.getDatosFromQuery();
+		
+		//prueJdbc.cerrarConexion();
 
-		prueJdbc.cerrarConexion();
+
+		prueJdbc.abrirConexion2("hola3");
 
 	}
 
@@ -139,6 +142,24 @@ public class JDBC {
 				System.out.println("Conectado a " + bd + " en " + servidor);
 			} else {
 				System.out.println("No conectado a " + bd + " en " + servidor);
+			}
+		} catch (SQLException e) {
+			System.out.println("SQLException: " + e.getLocalizedMessage());
+			System.out.println("SQLState: " + e.getSQLState());
+			System.out.println("Código error: " + e.getErrorCode());
+		}
+	}
+
+
+
+	public void abrirConexion2(String bd) {
+		try {
+			String url ="jdbc:sqlite:"+bd;
+			this.conexion = DriverManager.getConnection(url);
+			if (this.conexion != null) {
+				System.out.println("Conectado a " + bd );
+			} else {
+				System.out.println("No conectado a " + bd);
 			}
 		} catch (SQLException e) {
 			System.out.println("SQLException: " + e.getLocalizedMessage());
@@ -435,7 +456,8 @@ public class JDBC {
 				System.out.print("Claves foranea: ");
 				while (cvForaneas.next()) {
 					System.out.println(
-							cvForaneas.getString("FK_NAME") != null ? cvForaneas.getString("FK_NAME") : "No hay");
+							cvForaneas.getString("FKCOLUMN_NAME") != null ? cvForaneas.getString("FKCOLUMN_NAME")
+									: "No hay");
 				}
 				System.out.println();
 			}
@@ -450,22 +472,21 @@ public class JDBC {
 	// ejercicio 10
 	public void getDatosFromQuery() {
 		String query = "select *, nombre as non from alumnos";
-        try (Statement stmt = conexion.createStatement();
-             ResultSet rs = stmt.executeQuery(query)) {
+		try (Statement stmt = conexion.createStatement(); ResultSet rs = stmt.executeQuery(query)) {
 
-            ResultSetMetaData rsmd = rs.getMetaData();
-            int columnCount = rsmd.getColumnCount();
+			ResultSetMetaData rsmd = rs.getMetaData();
+			int columnCount = rsmd.getColumnCount();
 
-            for (int i = 1; i <= columnCount; i++) {             
-                System.out.println("Nombre de la columna: " + rsmd.getColumnName(i));
-                System.out.println("Alias de la columna: " + rsmd.getColumnLabel(i));
-                System.out.println("Nombre del tipo de dato: " + rsmd.getColumnTypeName(i));
-                System.out.println("Es autoincrementado: " + (rsmd.isAutoIncrement(i) ? "Si" : "No"));
-                System.out.println("Permite nulos: " + (rsmd.isNullable(i) == 0 ? "No" : "Si"));
-            }
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
+			for (int i = 1; i <= columnCount; i++) {
+				System.out.println("Nombre de la columna: " + rsmd.getColumnName(i));
+				System.out.println("Alias de la columna: " + rsmd.getColumnLabel(i));
+				System.out.println("Nombre del tipo de dato: " + rsmd.getColumnTypeName(i));
+				System.out.println("Es autoincrementado: " + (rsmd.isAutoIncrement(i) ? "Si" : "No"));
+				System.out.println("Permite nulos: " + (rsmd.isNullable(i) == 0 ? "No" : "Si"));
+			}
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
 
 	}
 
@@ -478,16 +499,21 @@ public class JDBC {
 			System.out.println("El nombre de la base de  es: " + dbmt.getDriverName());
 
 			tablas = dbmt.getTables("add", null, "a%", null);
+
 			while (tablas.next()) {
 				System.out.println(String.format("Nombre de la tabla: %s", tablas.getString("TABLE_NAME")));
 
-				columnas = dbmt.getColumns(bd, null, tablas.getString("TABLE_NAME"), null);
+				columnas = dbmt.getColumns("add", null, tablas.getString("TABLE_NAME"), null);
+	
+
 				while (columnas.next()) {
+
 					System.out.println(String.format(
 							"Nombre de la columna: %s \nTipo de dato: %s\nTamaño de la columna: %d\nPuede ser nulo? %s\nPuede ser autoincrementada? %s",
-							columnas.getString("COLUMN_POSITION"), columnas.getString("TYPE_NAME"),
+							columnas.getString("COLUMN_NAME"), columnas.getString("TYPE_NAME"),
 							columnas.getInt("COLUMN_SIZE"), columnas.getString("IS_NULLABLE"),
 							columnas.getString("IS_AUTOINCREMENT")));
+
 				}
 			}
 		} catch (Exception e) {
