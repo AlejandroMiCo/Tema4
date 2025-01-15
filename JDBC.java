@@ -1,4 +1,9 @@
 
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
 import java.sql.CallableStatement;
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
@@ -8,6 +13,9 @@ import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.ArrayList;
+
+import com.mysql.cj.util.Util;
 
 public class JDBC {
 	private Connection conexion;
@@ -77,18 +85,43 @@ public class JDBC {
 		// // Ejercicio 8
 		// prueJdbc.añadirColumna("alumnos", "mana", "varchar(20)", "DEFAULT NULL");
 
-		//prueJdbc.abrirConexion("add", "localhost", "root", null);
-
 		// Ejercicio 9
-		//prueJdbc.getInfoBD("add");
-		
+		// prueJdbc.getInfoBD("add");
+
 		// Ejercicio 10
-		//prueJdbc.getDatosFromQuery();
-		
-		//prueJdbc.cerrarConexion();
+		// prueJdbc.getDatosFromQuery();
+		prueJdbc.abrirConexion("add", "localhost", "root", null);
 
+		// Ejercicio 12 //TODO:
 
-		prueJdbc.abrirConexion2("hola3");
+		// Alumno[] alumnosBien = { new Alumno("Jose", "Miguez", 175, 5), new
+		// Alumno("Maria", "Pelaez", 165, 5) };
+		// prueJdbc.insertarAlumnos(alumnosBien);
+
+		// Peta por que no existe el aula 10
+		// Alumno[] alumnosMal={new Alumno("Eloi", "Miguez", 175, 5),new Alumno("Rosa",
+		// "Pelaez", 165, 10)};
+		// prueJdbc.insertarAlumnos(alumnosMal);
+
+		// prueJdbc.conexion.setAutoCommit(true);
+
+		// Ejercicio 13a //TODO:
+
+		// prueJdbc.obtenerImagen();
+
+		// Ejercicio 13b //TODO:
+
+		prueJdbc.guardarImagen(new File("c:\\Users\\Alejandro\\Desktop\\toys.png"));
+
+		// Ejercicio 15
+
+		// prueJdbc.getAulasAndSum();
+
+		prueJdbc.buscaCad("add", "a");
+
+		prueJdbc.cerrarConexion();
+
+		// prueJdbc.abrirConexion2("hola3");
 
 	}
 
@@ -150,14 +183,12 @@ public class JDBC {
 		}
 	}
 
-
-
 	public void abrirConexion2(String bd) {
 		try {
-			String url ="jdbc:sqlite:"+bd;
+			String url = "jdbc:sqlite:" + bd;
 			this.conexion = DriverManager.getConnection(url);
 			if (this.conexion != null) {
-				System.out.println("Conectado a " + bd );
+				System.out.println("Conectado a " + bd);
 			} else {
 				System.out.println("No conectado a " + bd);
 			}
@@ -169,6 +200,114 @@ public class JDBC {
 	}
 
 	// ----------------------------------------------------------------------------------------------------------------------------------//
+
+	// Ejercicio 12
+	public void insertarAlumnos(Alumno[] alumnos) throws SQLException {
+
+		try {
+			conexion.setAutoCommit(false);
+			String query = "INSERT INTO alumnos(nombre,apellidos,altura,aula) VALUES (?,?,?,?)";
+			if (this.ps == null)
+				this.ps = this.conexion.prepareStatement(query);
+
+			for (Alumno alumno : alumnos) {
+				ps.setString(1, alumno.nombre);
+				ps.setString(2, alumno.apellidos);
+				ps.setInt(3, alumno.altura);
+				ps.setInt(4, alumno.aula);
+				ps.executeUpdate();
+			}
+			conexion.commit();
+
+		} catch (SQLException e) {
+			try {
+				System.out.println("Error en los datos: " + e.getMessage());
+				conexion.rollback();
+			} catch (SQLException ex) {
+				System.out.println("No se como hemos llegado aqui: " + ex.getMessage());
+			}
+		}
+	}
+
+	// Ejercicio 13a
+
+	public void obtenerImagen() throws SQLException {
+		Statement sta = null;
+		sta = this.conexion.createStatement();
+		String query = String.format("SELECT imagen FROM imagenes WHERE nombre='imagen2.png';");
+		ResultSet result = sta.executeQuery(query);
+		result.next();
+		InputStream imagen = result.getBinaryStream(1);
+		try (FileOutputStream out = new FileOutputStream(new File("C:\\Users\\Alejandro\\Desktop\\imagen2.png"))) {
+			int c;
+			while ((c = imagen.read()) != -1) {
+				out.write(c);
+			}
+		} catch (Exception e) {
+
+		}
+	}
+
+	// Ejercicio 13b
+
+	public void guardarImagen(File imagen) throws SQLException {
+
+		String query = "INSERT INTO imagenes(nombre,imagen) VALUES (?,?)";
+		if (this.ps == null)
+			this.ps = this.conexion.prepareStatement(query);
+
+		ps.setString(1, imagen.getName());
+
+		try (FileInputStream in = new FileInputStream(imagen)) {
+			ps.setBinaryStream(2, in, imagen.length());
+			ps.executeUpdate();
+		} catch (Exception e) {
+
+		}
+	}
+
+	// Ejercicio 15
+
+	public void getAulasAndSum() throws SQLException {
+		Statement sta = null;
+		sta = this.conexion.createStatement();
+		String query = ("SELECT SUMA();");
+		ResultSet result = sta.executeQuery(query);
+		System.out.println("----LLAMADA A SUMA----");
+		while (result.next()) {
+			System.out.println("La suma es de: " + result.getInt(1));
+		}
+		System.out.println("----LLAMADA A getaulas----");
+		String query2 = ("CALL getaulas(25,'a');");
+		ResultSet result2 = sta.executeQuery(query2);
+		while (result2.next()) {
+			System.out.println(String.format("%d %s %d", result2.getInt(1), result2.getString(2), result2.getInt(3)));
+		}
+	}
+
+	// Ejercicio 16
+
+	public void buscaCad(String bd, String cad) throws SQLException {
+		abrirConexion(bd, "localhost", "root", "");
+		Statement sta = conexion.createStatement();
+		ResultSet tablas = conexion.getMetaData().getTables(bd, null, null, new String[] { "TABLE" });
+		while (tablas.next()) {
+			ResultSet columnas = conexion.getMetaData().getColumns(bd, null, tablas.getString("TABLE_NAME"), null);
+			while (columnas.next()) {
+				if (columnas.getString("TYPE_NAME").equals("VARCHAR")
+						|| columnas.getString("TYPE_NAME").equals("CHAR")) {
+					String query = String.format("SELECT %s FROM %s WHERE %s LIKE '%s';",
+							columnas.getString("COLUMN_NAME"), columnas.getString("TABLE_NAME"),
+							columnas.getString("COLUMN_NAME"), "%" + cad + "%");
+					ResultSet result = sta.executeQuery(query);
+					while (result.next()) {
+						System.out.println(String.format("|%10s|%15s|%15s|%30s|", bd, tablas.getString("TABLE_NAME"),
+								columnas.getString("COLUMN_NAME"), result.getString(1)));
+					}
+				}
+			}
+		}
+	}
 
 	// Ejercicio 1
 	public void ejercicio1(String cadena) throws SQLException {
@@ -490,6 +629,8 @@ public class JDBC {
 
 	}
 
+	// ejercicio 11
+
 	public void apartadoG(String bd) {
 		DatabaseMetaData dbmt;
 		ResultSet tablas, columnas;
@@ -504,7 +645,6 @@ public class JDBC {
 				System.out.println(String.format("Nombre de la tabla: %s", tablas.getString("TABLE_NAME")));
 
 				columnas = dbmt.getColumns("add", null, tablas.getString("TABLE_NAME"), null);
-	
 
 				while (columnas.next()) {
 
