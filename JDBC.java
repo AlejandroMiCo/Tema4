@@ -18,14 +18,16 @@ import java.util.ArrayList;
 import com.mysql.cj.util.Util;
 
 public class JDBC {
-	private Connection conexion;
-	private Connection conexion2;
+	private Connection mySQLConexion;
+	private Connection mySQLiteConexion;
 	private PreparedStatement ps = null; // atributo de instancia
 
 	public static void main(String[] args) throws SQLException {
 		JDBC prueJdbc = new JDBC();
 		long timeb4;
 		long timeAfter;
+		String query;
+		
 
 		// prueJdbc.getInfo("add");
 
@@ -91,16 +93,21 @@ public class JDBC {
 		// Ejercicio 10
 		// prueJdbc.getDatosFromQuery();
 		prueJdbc.abrirConexion("add", "localhost", "root", null);
+		prueJdbc.abrirConexion2("SQLiteDataBase.sqlite");
+
+		prueJdbc.Migration(prueJdbc.getCreationQuery());
 
 		// Ejercicio 12 //TODO:
 
-		// Alumno[] alumnosBien = { new Alumno("Jose", "Miguez", 175, 5), new
-		// Alumno("Maria", "Pelaez", 165, 5) };
+		// Alumno[] alumnosBien = {
+		// new Alumno("Paco3", "Paquito3", 175, 5),
+		// new Alumno("Pepe", "Pepito", 185, 5) };
 		// prueJdbc.insertarAlumnos(alumnosBien);
 
-		// Peta por que no existe el aula 10
-		// Alumno[] alumnosMal={new Alumno("Eloi", "Miguez", 175, 5),new Alumno("Rosa",
-		// "Pelaez", 165, 10)};
+		// Peta por que no existe el aula 100
+		// Alumno[] alumnosMal = {
+		// new Alumno("Maria", "Perez", 190, 5),
+		// new Alumno("Juan","Gimenez", 155, 100)};
 		// prueJdbc.insertarAlumnos(alumnosMal);
 
 		// prueJdbc.conexion.setAutoCommit(true);
@@ -111,13 +118,13 @@ public class JDBC {
 
 		// Ejercicio 13b //TODO:
 
-		prueJdbc.guardarImagen(new File("c:\\Users\\Alejandro\\Desktop\\toys.png"));
+		// prueJdbc.guardarImagen(new File("c:\\Users\\Alejandro\\Desktop\\toys2.png"));
 
 		// Ejercicio 15
 
 		// prueJdbc.getAulasAndSum();
 
-		prueJdbc.buscaCad("add", "a");
+		// prueJdbc.buscaCad("add", "a");
 
 		prueJdbc.cerrarConexion();
 
@@ -125,11 +132,54 @@ public class JDBC {
 
 	}
 
+	public ArrayList<String> getCreationQuery() {
+		DatabaseMetaData dbmt;
+		ResultSet tablas;
+		Statement sta = null;
+		String cadenaAModificar = "";
+		ArrayList<String> querys = new ArrayList<>();
+
+		try {
+			dbmt = this.mySQLConexion.getMetaData();
+			tablas = dbmt.getTables("add", null, null, null);
+
+			while (tablas.next()) {
+				sta = this.mySQLConexion.createStatement();
+
+				ResultSet result = sta.executeQuery(String.format("SHOW CREATE TABLE %s", tablas.getString("TABLE_NAME")));
+				result.next();
+				cadenaAModificar = result.getString(2);
+				cadenaAModificar = cadenaAModificar.replace("KEY `aula` (`aula`),", "");
+				cadenaAModificar = cadenaAModificar.replace("AUTO_INCREMENT", "");
+				cadenaAModificar = cadenaAModificar.replace("ENGINE=InnoDB =30 DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci", "");
+				cadenaAModificar = cadenaAModificar.replace("ENGINE=InnoDB =12 DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci", " ");
+				cadenaAModificar = cadenaAModificar.replace("ENGINE=InnoDB =32 DEFAULT CHARSET=utf8 COLLATE=utf8_spanish_ci", " ");
+				cadenaAModificar = cadenaAModificar.replace("ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci", " ");
+				cadenaAModificar = cadenaAModificar.replace("KEY `alumno` (`alumno`),", "");
+				cadenaAModificar = cadenaAModificar.replace("KEY `asignatura` (`asignatura`),", "");
+				cadenaAModificar = cadenaAModificar.replace("DEFAULT current_timestamp()","");
+				cadenaAModificar = cadenaAModificar.replace("DEFINER=`root`@`localhost` SQL SECURITY DEFINER","");
+				cadenaAModificar = cadenaAModificar.replaceAll("ALGORITHM\\s*=\\s*\\w+", "");
+				System.out.println(cadenaAModificar);
+				querys.add(cadenaAModificar);
+			}
+		} catch (Exception e) {
+			System.out.println(e.getMessage());
+		}
+		return querys;
+	}
+
+	public void Migration(ArrayList<String> querys) throws SQLException{
+		for (int i = 0; i < querys.size(); i++) {
+			this.mySQLiteConexion.createStatement().executeUpdate(querys.get(i));
+		}
+	}
+
 	public void getInfo(String bd) {
 		DatabaseMetaData dbmt;
 		ResultSet tablas, columnas;
 		try {
-			dbmt = this.conexion.getMetaData();
+			dbmt = this.mySQLConexion.getMetaData();
 			tablas = dbmt.getTables(bd, null, null, null);
 			while (tablas.next()) {
 				System.out.println(
@@ -146,32 +196,21 @@ public class JDBC {
 		}
 	}
 
-	public void ejemlpos7() throws SQLException {
-		CallableStatement cs = this.conexion.prepareCall("CALL getAulas(?,?)");
-		// Se proporcionan valores de entrada al procedimiento
-		cs.setInt(1, 10);
-		cs.setString(2, "o");
-		ResultSet resultado = cs.executeQuery();
-		while (resultado.next()) {
-			System.out.println(resultado.getInt(1) + "\t" + resultado.getString("nombreAula") + "\t"
-					+ resultado.getInt("puestos"));
-		}
-	}
-
+	
 	public void cerrarConexion() {
 		try {
-			this.conexion.close();
+			this.mySQLConexion.close();
 			System.out.println("Conexion cerrada");
 		} catch (SQLException e) {
 			System.out.println("Error al cerrar la conexión: " + e.getLocalizedMessage());
 		}
 	}
-
+	
 	public void abrirConexion(String bd, String servidor, String usuario, String password) {
 		try {
 			String url = String.format("jdbc:mysql://%s:3306/%s?useServerPrepStmts=true", servidor, bd);
-			this.conexion = DriverManager.getConnection(url, usuario, password);
-			if (this.conexion != null) {
+			this.mySQLConexion = DriverManager.getConnection(url, usuario, password);
+			if (this.mySQLConexion != null) {
 				System.out.println("Conectado a " + bd + " en " + servidor);
 			} else {
 				System.out.println("No conectado a " + bd + " en " + servidor);
@@ -182,34 +221,45 @@ public class JDBC {
 			System.out.println("Código error: " + e.getErrorCode());
 		}
 	}
-
+	
 	public void abrirConexion2(String bd) {
 		try {
 			String url = "jdbc:sqlite:" + bd;
-			this.conexion = DriverManager.getConnection(url);
-			if (this.conexion != null) {
+			this.mySQLiteConexion = DriverManager.getConnection(url);
+			if (this.mySQLiteConexion != null) {
 				System.out.println("Conectado a " + bd);
 			} else {
 				System.out.println("No conectado a " + bd);
 			}
 		} catch (SQLException e) {
-			System.out.println("SQLException: " + e.getLocalizedMessage());
-			System.out.println("SQLState: " + e.getSQLState());
+			System.out.println("SQLiteException: " + e.getLocalizedMessage());
+			System.out.println("SQLiteState: " + e.getSQLState());
 			System.out.println("Código error: " + e.getErrorCode());
 		}
 	}
 
 	// ----------------------------------------------------------------------------------------------------------------------------------//
-
+	
+	public void ejemlpos7() throws SQLException {
+		CallableStatement cs = this.mySQLConexion.prepareCall("CALL getAulas(?,?)");
+		// Se proporcionan valores de entrada al procedimiento
+		cs.setInt(1, 10);
+		cs.setString(2, "o");
+		ResultSet resultado = cs.executeQuery();
+		while (resultado.next()) {
+			System.out.println(resultado.getInt(1) + "\t" + resultado.getString("nombreAula") + "\t"
+					+ resultado.getInt("puestos"));
+		}
+	}
 	// Ejercicio 12
 	public void insertarAlumnos(Alumno[] alumnos) throws SQLException {
-
+		
 		try {
-			conexion.setAutoCommit(false);
+			mySQLConexion.setAutoCommit(false);
 			String query = "INSERT INTO alumnos(nombre,apellidos,altura,aula) VALUES (?,?,?,?)";
 			if (this.ps == null)
-				this.ps = this.conexion.prepareStatement(query);
-
+			this.ps = this.mySQLConexion.prepareStatement(query);
+			
 			for (Alumno alumno : alumnos) {
 				ps.setString(1, alumno.nombre);
 				ps.setString(2, alumno.apellidos);
@@ -217,12 +267,12 @@ public class JDBC {
 				ps.setInt(4, alumno.aula);
 				ps.executeUpdate();
 			}
-			conexion.commit();
+			mySQLConexion.commit();
 
 		} catch (SQLException e) {
 			try {
 				System.out.println("Error en los datos: " + e.getMessage());
-				conexion.rollback();
+				mySQLConexion.rollback();
 			} catch (SQLException ex) {
 				System.out.println("No se como hemos llegado aqui: " + ex.getMessage());
 			}
@@ -233,7 +283,7 @@ public class JDBC {
 
 	public void obtenerImagen() throws SQLException {
 		Statement sta = null;
-		sta = this.conexion.createStatement();
+		sta = this.mySQLConexion.createStatement();
 		String query = String.format("SELECT imagen FROM imagenes WHERE nombre='imagen2.png';");
 		ResultSet result = sta.executeQuery(query);
 		result.next();
@@ -254,7 +304,7 @@ public class JDBC {
 
 		String query = "INSERT INTO imagenes(nombre,imagen) VALUES (?,?)";
 		if (this.ps == null)
-			this.ps = this.conexion.prepareStatement(query);
+			this.ps = this.mySQLConexion.prepareStatement(query);
 
 		ps.setString(1, imagen.getName());
 
@@ -270,15 +320,16 @@ public class JDBC {
 
 	public void getAulasAndSum() throws SQLException {
 		Statement sta = null;
-		sta = this.conexion.createStatement();
+		sta = this.mySQLConexion.createStatement();
 		String query = ("SELECT SUMA();");
 		ResultSet result = sta.executeQuery(query);
-		System.out.println("----LLAMADA A SUMA----");
+		System.out.println("SUMA:");
 		while (result.next()) {
 			System.out.println("La suma es de: " + result.getInt(1));
 		}
-		System.out.println("----LLAMADA A getaulas----");
-		String query2 = ("CALL getaulas(25,'a');");
+		System.out.println();
+		System.out.println("Getaulas:");
+		String query2 = ("CALL getaulas(32,'a');");
 		ResultSet result2 = sta.executeQuery(query2);
 		while (result2.next()) {
 			System.out.println(String.format("%d %s %d", result2.getInt(1), result2.getString(2), result2.getInt(3)));
@@ -289,10 +340,10 @@ public class JDBC {
 
 	public void buscaCad(String bd, String cad) throws SQLException {
 		abrirConexion(bd, "localhost", "root", "");
-		Statement sta = conexion.createStatement();
-		ResultSet tablas = conexion.getMetaData().getTables(bd, null, null, new String[] { "TABLE" });
+		Statement sta = mySQLConexion.createStatement();
+		ResultSet tablas = mySQLConexion.getMetaData().getTables(bd, null, null, new String[] { "TABLE" });
 		while (tablas.next()) {
-			ResultSet columnas = conexion.getMetaData().getColumns(bd, null, tablas.getString("TABLE_NAME"), null);
+			ResultSet columnas = mySQLConexion.getMetaData().getColumns(bd, null, tablas.getString("TABLE_NAME"), null);
 			while (columnas.next()) {
 				if (columnas.getString("TYPE_NAME").equals("VARCHAR")
 						|| columnas.getString("TYPE_NAME").equals("CHAR")) {
@@ -301,7 +352,7 @@ public class JDBC {
 							columnas.getString("COLUMN_NAME"), "%" + cad + "%");
 					ResultSet result = sta.executeQuery(query);
 					while (result.next()) {
-						System.out.println(String.format("|%10s|%15s|%15s|%30s|", bd, tablas.getString("TABLE_NAME"),
+						System.out.println(String.format("%10s%15s%15s%30s", bd, tablas.getString("TABLE_NAME"),
 								columnas.getString("COLUMN_NAME"), result.getString(1)));
 					}
 				}
@@ -317,7 +368,7 @@ public class JDBC {
 		String query = "SELECT * FROM alumnos WHERE nombre LIKE ?";
 
 		if (this.ps == null)
-			this.ps = this.conexion.prepareStatement(query);
+			this.ps = this.mySQLConexion.prepareStatement(query);
 
 		ps.setString(1, "%" + cadena + "%");
 
@@ -335,7 +386,7 @@ public class JDBC {
 
 		String query = "INSERT INTO alumnos VALUES (Default, ? , ? , ?, ?, Default)";
 		if (this.ps == null)
-			this.ps = this.conexion.prepareStatement(query);
+			this.ps = this.mySQLConexion.prepareStatement(query);
 		ps.setString(1, nombre);
 		ps.setString(2, apellidos);
 		ps.setInt(3, altura);
@@ -350,7 +401,7 @@ public class JDBC {
 
 		String query = "INSERT INTO asignaturas VALUES (Default, ?)";
 		if (this.ps == null)
-			this.ps = this.conexion.prepareStatement(query);
+			this.ps = this.mySQLConexion.prepareStatement(query);
 		ps.setString(1, asignatura);
 
 		int filasAfectadas = ps.executeUpdate();
@@ -362,7 +413,7 @@ public class JDBC {
 	public void darDeBajaAlumno(int cod) throws SQLException {
 		String query = "DELETE FROM alumnos WHERE codigo = ?";
 		if (this.ps == null)
-			this.ps = this.conexion.prepareStatement(query);
+			this.ps = this.mySQLConexion.prepareStatement(query);
 		ps.setInt(1, cod);
 
 		int filasAfectadas = ps.executeUpdate();
@@ -372,7 +423,7 @@ public class JDBC {
 	public void darDeBajaAsignaturas(int cod) throws SQLException {
 		String query = "DELETE FROM asignaturas WHERE COD = ?";
 		if (this.ps == null)
-			this.ps = this.conexion.prepareStatement(query);
+			this.ps = this.mySQLConexion.prepareStatement(query);
 		ps.setInt(1, cod);
 
 		int filasAfectadas = ps.executeUpdate();
@@ -384,7 +435,7 @@ public class JDBC {
 	public void modificarAlumno(int codigo, String nombre, String apellido, int altura, int aula) throws SQLException {
 		String query = "Update alumnos set nombre = ?, apellidos = ?, altura = ?, aula = ?  where codigo = ?";
 		if (this.ps == null)
-			this.ps = this.conexion.prepareStatement(query);
+			this.ps = this.mySQLConexion.prepareStatement(query);
 		ps.setString(1, nombre);
 		ps.setString(2, apellido);
 		ps.setInt(3, altura);
@@ -396,7 +447,7 @@ public class JDBC {
 	public void modificarAula(String nombre, int codigo) throws SQLException {
 		String query = "Update asignaturas set nombre = ?  where COD = ?";
 		if (this.ps == null)
-			this.ps = this.conexion.prepareStatement(query);
+			this.ps = this.mySQLConexion.prepareStatement(query);
 		ps.setString(1, nombre);
 		ps.setInt(2, codigo);
 		ps.executeUpdate();
@@ -410,7 +461,7 @@ public class JDBC {
 		String query = "SELECT DISTINCT numero FROM aulas JOIN alumnos ON alumnos.aula = aulas.numero";
 
 		if (this.ps == null)
-			this.ps = this.conexion.prepareStatement(query);
+			this.ps = this.mySQLConexion.prepareStatement(query);
 
 		ResultSet rs = ps.executeQuery();
 		while (rs.next()) {
@@ -426,7 +477,7 @@ public class JDBC {
 		String query = "SELECT asignaturas.NOMBRE,alumnos.nombre, notas.NOTA FROM asignaturas JOIN notas ON notas.asignatura = asignaturas.COD JOIN alumnos on alumnos.codigo = notas.alumno where notas.NOTA >=5";
 
 		if (this.ps == null)
-			this.ps = this.conexion.prepareStatement(query);
+			this.ps = this.mySQLConexion.prepareStatement(query);
 
 		ResultSet rs = ps.executeQuery();
 		while (rs.next()) {
@@ -443,7 +494,7 @@ public class JDBC {
 		String query = "SELECT nombre from asignaturas where cod not IN(SELECT DISTINCT asignatura FROM notas)";
 
 		if (this.ps == null)
-			this.ps = this.conexion.prepareStatement(query);
+			this.ps = this.mySQLConexion.prepareStatement(query);
 
 		ResultSet rs = ps.executeQuery();
 		while (rs.next()) {
@@ -459,7 +510,7 @@ public class JDBC {
 		String query = "SELECT nombre from alumnos where nombre LIKE ? and altura > ?";
 
 		if (this.ps == null)
-			this.ps = this.conexion.prepareStatement(query);
+			this.ps = this.mySQLConexion.prepareStatement(query);
 
 		ps.setString(1, "%" + patron + "%");
 		ps.setInt(2, altura);
@@ -472,7 +523,7 @@ public class JDBC {
 		String query = String.format("SELECT nombre from alumnos where nombre LIKE %s and altura > %d",
 				"\"%" + patron + "%\"", altura);
 
-		Statement st = conexion.createStatement();
+		Statement st = mySQLConexion.createStatement();
 		ResultSet rs = st.executeQuery(query);
 		return rs;
 	}
@@ -490,7 +541,7 @@ public class JDBC {
 	public void añadirColumna(String tabla, String campo, String tipoDeDato, String propiedades) {
 		Statement sta = null;
 		try {
-			sta = this.conexion.createStatement();
+			sta = this.mySQLConexion.createStatement();
 			String query = String.format("ALTER TABLE %s ADD %s %s %s", tabla, campo, tipoDeDato, propiedades);
 
 			int filasAfectadas = sta.executeUpdate(query);
@@ -517,7 +568,7 @@ public class JDBC {
 
 			System.out.println("A");
 			System.out.println("------------------------------------------------------------------------");
-			dbmt = this.conexion.getMetaData();
+			dbmt = this.mySQLConexion.getMetaData();
 			System.out.println("El nombre del driver es: " + dbmt.getDriverName());
 			System.out.println("El nombre de la version es: " + dbmt.getDriverMajorVersion());
 			System.out.println("El nombre de la url es: " + dbmt.getURL());
@@ -564,7 +615,7 @@ public class JDBC {
 			System.out.println();
 			System.out.println("F");
 			System.out.println("------------------------------------------------------------------------");
-			dbmt = this.conexion.getMetaData();
+			dbmt = this.mySQLConexion.getMetaData();
 			procedimienntos = dbmt.getProcedures("add", null, null);
 			while (procedimienntos.next()) {
 				System.out.println(String.format("Nombre del procedimiento es : %s ",
@@ -611,7 +662,7 @@ public class JDBC {
 	// ejercicio 10
 	public void getDatosFromQuery() {
 		String query = "select *, nombre as non from alumnos";
-		try (Statement stmt = conexion.createStatement(); ResultSet rs = stmt.executeQuery(query)) {
+		try (Statement stmt = mySQLConexion.createStatement(); ResultSet rs = stmt.executeQuery(query)) {
 
 			ResultSetMetaData rsmd = rs.getMetaData();
 			int columnCount = rsmd.getColumnCount();
@@ -636,7 +687,7 @@ public class JDBC {
 		ResultSet tablas, columnas;
 
 		try {
-			dbmt = this.conexion.getMetaData();
+			dbmt = this.mySQLConexion.getMetaData();
 			System.out.println("El nombre de la base de  es: " + dbmt.getDriverName());
 
 			tablas = dbmt.getTables("add", null, "a%", null);
@@ -666,7 +717,7 @@ public class JDBC {
 	public void consultaJugadores(String bd) {
 
 		abrirConexion("furbo", "localhost", "root", null);
-		try (Statement stmt = this.conexion.createStatement()) {
+		try (Statement stmt = this.mySQLConexion.createStatement()) {
 			String query = "select * from jugadores_celta";
 			ResultSet rs = stmt.executeQuery(query);
 			while (rs.next()) {
@@ -682,14 +733,14 @@ public class JDBC {
 	public void consultaJugadoresPS(String nombre, int peso) throws SQLException {
 		String query = "Update jugadores_celta set peso = ? where nombre = ?";
 		if (this.ps == null)
-			this.ps = this.conexion.prepareStatement(query);
+			this.ps = this.mySQLConexion.prepareStatement(query);
 		ps.setString(2, nombre);
 		ps.setInt(1, peso);
 		ps.executeUpdate();
 	}
 
 	public void insertarFila() {
-		try (Statement sta = this.conexion.createStatement()) {
+		try (Statement sta = this.mySQLConexion.createStatement()) {
 			String query = "INSERT INTO jugadores_celta VALUES (10, 'Alex', 'delantero', 24, 'España', 88, 89, 28, 1500)";
 			int filasAfectadas = sta.executeUpdate(query);
 			System.out.println("Filas insertadas: " + filasAfectadas);
@@ -701,7 +752,7 @@ public class JDBC {
 	public void addColumna() {
 		Statement sta = null;
 		try {
-			sta = this.conexion.createStatement();
+			sta = this.mySQLConexion.createStatement();
 			String query = "ALTER TABLE jugadores_celta ADD altura VARCHAR(5) DEFAULT NULL, peso VARCHAR(5) DEFAULT NULL";
 			int filasAfectadas = sta.executeUpdate(query);
 			System.out.println("Filas afectadas: " + filasAfectadas);
