@@ -27,7 +27,6 @@ public class JDBC {
 		long timeb4;
 		long timeAfter;
 		String query;
-		
 
 		// prueJdbc.getInfo("add");
 
@@ -95,7 +94,11 @@ public class JDBC {
 		prueJdbc.abrirConexion("add", "localhost", "root", null);
 		prueJdbc.abrirConexion2("SQLiteDataBase.sqlite");
 
-		prueJdbc.Migration(prueJdbc.getCreationQuery());
+		// prueJdbc.Migration(prueJdbc.getCreationQuery());
+
+		//prueJdbc.OverInsert(32, "AulaSinPatatas", 0);
+		prueJdbc.DoubleInsert(30, "Marco", "Polo",190 ,30);
+
 
 		// Ejercicio 12 //TODO:
 
@@ -146,19 +149,24 @@ public class JDBC {
 			while (tablas.next()) {
 				sta = this.mySQLConexion.createStatement();
 
-				ResultSet result = sta.executeQuery(String.format("SHOW CREATE TABLE %s", tablas.getString("TABLE_NAME")));
+				ResultSet result = sta
+						.executeQuery(String.format("SHOW CREATE TABLE %s", tablas.getString("TABLE_NAME")));
 				result.next();
 				cadenaAModificar = result.getString(2);
 				cadenaAModificar = cadenaAModificar.replace("KEY `aula` (`aula`),", "");
 				cadenaAModificar = cadenaAModificar.replace("AUTO_INCREMENT", "");
-				cadenaAModificar = cadenaAModificar.replace("ENGINE=InnoDB =30 DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci", "");
-				cadenaAModificar = cadenaAModificar.replace("ENGINE=InnoDB =12 DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci", " ");
-				cadenaAModificar = cadenaAModificar.replace("ENGINE=InnoDB =32 DEFAULT CHARSET=utf8 COLLATE=utf8_spanish_ci", " ");
-				cadenaAModificar = cadenaAModificar.replace("ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci", " ");
+				cadenaAModificar = cadenaAModificar
+						.replace("ENGINE=InnoDB =30 DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci", "");
+				cadenaAModificar = cadenaAModificar
+						.replace("ENGINE=InnoDB =12 DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci", " ");
+				cadenaAModificar = cadenaAModificar
+						.replace("ENGINE=InnoDB =32 DEFAULT CHARSET=utf8 COLLATE=utf8_spanish_ci", " ");
+				cadenaAModificar = cadenaAModificar
+						.replace("ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci", " ");
 				cadenaAModificar = cadenaAModificar.replace("KEY `alumno` (`alumno`),", "");
 				cadenaAModificar = cadenaAModificar.replace("KEY `asignatura` (`asignatura`),", "");
-				cadenaAModificar = cadenaAModificar.replace("DEFAULT current_timestamp()","");
-				cadenaAModificar = cadenaAModificar.replace("DEFINER=`root`@`localhost` SQL SECURITY DEFINER","");
+				cadenaAModificar = cadenaAModificar.replace("DEFAULT current_timestamp()", "");
+				cadenaAModificar = cadenaAModificar.replace("DEFINER=`root`@`localhost` SQL SECURITY DEFINER", "");
 				cadenaAModificar = cadenaAModificar.replaceAll("ALGORITHM\\s*=\\s*\\w+", "");
 				System.out.println(cadenaAModificar);
 				querys.add(cadenaAModificar);
@@ -169,11 +177,98 @@ public class JDBC {
 		return querys;
 	}
 
-	public void Migration(ArrayList<String> querys) throws SQLException{
+	public void Migration(ArrayList<String> querys) throws SQLException {
 		for (int i = 0; i < querys.size(); i++) {
 			this.mySQLiteConexion.createStatement().executeUpdate(querys.get(i));
 		}
 	}
+
+	// Ejercicio 2 sqlite
+
+	// En la consola, una vez creada la base de datos usamos el comando .read que
+	// dara error en la funcion de suma, tmb si ya estan definidas las tablas como
+	// en nuestro caso por el ejercicio 1 dara error en las tablas ya creadas pero
+	// insertara los datos sin problemas
+
+	// Ejercicio 3 sqlite
+
+	// select * from aulas order by puestos desc limit 1,2;
+
+	// Ejercicio 4 sqlite
+
+	public void MinPuestoSin(int numMin) {
+		try {
+			Statement sta = this.mySQLiteConexion.createStatement();
+			ResultSet result = sta.executeQuery(String.format("SELECT * FROM aulas where puestos >=" + numMin));
+			while (result.next()) {
+				System.out.printf("%4d|%12s|%4d\n", result.getInt("numero"), result.getString("nombreAula"),
+						result.getInt("puestos"));
+			}
+		} catch (Exception e) {
+			System.out.println(e.getMessage());
+		}
+	}
+
+	public void MinPuestoCon(int numMin) {
+		PreparedStatement ps = null;
+		String query = "SELECT * FROM aulas where puestos >= ?";
+		try {
+			if (this.ps == null) {
+				this.ps = this.mySQLiteConexion.prepareStatement(query);
+			}
+
+			this.ps.setInt(1, numMin);
+
+			ResultSet rs = this.ps.executeQuery();
+			while (rs.next()) {
+				System.out.printf("%4d|%12s|%4d\n", rs.getInt("numero"), rs.getString("nombreAula"),
+						rs.getInt("puestos"));
+			}
+		} catch (Exception e) {
+			System.out.println(e.getMessage());
+		}
+	}
+
+
+	// Ejercicio 5 sqlite
+
+	public void InsertarDatosAulas(int numero, String nombreAula, int puestos) {
+		try {
+			Statement sta = this.mySQLiteConexion.createStatement();
+			sta.executeUpdate(String.format("INSERT INTO aulas (numero, nombreAula, puestos) VALUES (%d,'%s',%d);", numero, nombreAula, puestos));
+			System.out.println("Se ha insertado correctamente");
+		} catch (Exception e) {
+			System.out.println(e.getMessage());
+		}
+	}
+
+	// Ejercicio 6 sqlite
+
+	public void OverInsert(int numero, String nombreAula, int puestos){
+		try {
+			Statement sta = this.mySQLiteConexion.createStatement();
+			sta.executeUpdate(String.format("INSERT OR REPLACE INTO aulas (numero, nombreAula, puestos) VALUES (%d,'%s',%d);", numero, nombreAula, puestos));
+			System.out.println("Se ha insertado correctamente");
+		} catch (Exception e) {
+			System.out.println(e.getMessage());
+		}
+	}
+
+	// Ejercicio 7 sqlite
+
+	public void DoubleInsert(int codigo, String nombre, String apellidos, int altura, int aula){
+		try {
+			Statement staSQL = this.mySQLConexion.createStatement();
+			Statement staLite = this.mySQLiteConexion.createStatement();
+			staSQL.executeUpdate(String.format("INSERT OR REPLACE INTO alumnos (codigo,nombre,apellidos,altura,aula) VALUES (%d,'%s','%s',%d,%d);", codigo, nombre, apellidos, altura, aula));
+			staLite.executeUpdate(String.format("INSERT OR REPLACE INTO alumnos (codigo,nombre,apellidos,altura,aula) VALUES (%d,'%s','%s',%d,%d);", codigo, nombre, apellidos, altura, aula));
+			System.out.println("Se han insertado correctamente");
+		} catch (Exception e) {
+			System.out.println(e.getMessage());
+		}
+	}
+
+
 
 	public void getInfo(String bd) {
 		DatabaseMetaData dbmt;
@@ -196,7 +291,6 @@ public class JDBC {
 		}
 	}
 
-	
 	public void cerrarConexion() {
 		try {
 			this.mySQLConexion.close();
@@ -205,7 +299,7 @@ public class JDBC {
 			System.out.println("Error al cerrar la conexión: " + e.getLocalizedMessage());
 		}
 	}
-	
+
 	public void abrirConexion(String bd, String servidor, String usuario, String password) {
 		try {
 			String url = String.format("jdbc:mysql://%s:3306/%s?useServerPrepStmts=true", servidor, bd);
@@ -221,7 +315,7 @@ public class JDBC {
 			System.out.println("Código error: " + e.getErrorCode());
 		}
 	}
-	
+
 	public void abrirConexion2(String bd) {
 		try {
 			String url = "jdbc:sqlite:" + bd;
@@ -239,7 +333,7 @@ public class JDBC {
 	}
 
 	// ----------------------------------------------------------------------------------------------------------------------------------//
-	
+
 	public void ejemlpos7() throws SQLException {
 		CallableStatement cs = this.mySQLConexion.prepareCall("CALL getAulas(?,?)");
 		// Se proporcionan valores de entrada al procedimiento
@@ -251,15 +345,16 @@ public class JDBC {
 					+ resultado.getInt("puestos"));
 		}
 	}
+
 	// Ejercicio 12
 	public void insertarAlumnos(Alumno[] alumnos) throws SQLException {
-		
+
 		try {
 			mySQLConexion.setAutoCommit(false);
 			String query = "INSERT INTO alumnos(nombre,apellidos,altura,aula) VALUES (?,?,?,?)";
 			if (this.ps == null)
-			this.ps = this.mySQLConexion.prepareStatement(query);
-			
+				this.ps = this.mySQLConexion.prepareStatement(query);
+
 			for (Alumno alumno : alumnos) {
 				ps.setString(1, alumno.nombre);
 				ps.setString(2, alumno.apellidos);
