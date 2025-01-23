@@ -97,8 +97,10 @@ public class JDBC {
 		// prueJdbc.Migration(prueJdbc.getCreationQuery());
 
 		// prueJdbc.OverInsert(32, "AulaSinPatatas", 0);
-		//prueJdbc.DoubleInsert(30, "Marco", "Polo", 190, 30);
+		// prueJdbc.DoubleInsert(30, "Marco", "Polo", 190, 30);
 		prueJdbc.BusquedaDeAula("");
+
+		// prueJdbc.DoubleInsertWithRollback(30, "Marco", "Polo", 190, 30);
 
 
 		// Ejercicio 12 //TODO:
@@ -303,26 +305,34 @@ public class JDBC {
 		System.out.println("");
 	}
 
-	public void getInfo(String bd) {
-		DatabaseMetaData dbmt;
-		ResultSet tablas, columnas;
+	// Ejercicio 9 sqlite
+
+	public void DoubleInsertWithRollback(int codigo, String nombre, String apellidos, int altura, int aula) throws SQLException {
 		try {
-			dbmt = this.mySQLConexion.getMetaData();
-			tablas = dbmt.getTables(bd, null, null, null);
-			while (tablas.next()) {
-				System.out.println(
-						String.format("%s %s", tablas.getString("TABLE_NAME"), tablas.getString("TABLE_TYPE")));
-				columnas = dbmt.getColumns(bd, null, tablas.getString("TABLE_NAME"), null);
-				while (columnas.next()) {
-					System.out.println(String.format(" %s %s %d %s %s", columnas.getString("COLUMN_NAME"),
-							columnas.getString("TYPE_NAME"), columnas.getInt("COLUMN_SIZE"),
-							columnas.getString("IS_NULLABLE"), columnas.getString("IS_AUTOINCREMENT")));
-				}
-			}
+			this.mySQLConexion.setAutoCommit(false);
+			this.mySQLiteConexion.setAutoCommit(false);
+
+			DoubleInsert(codigo, nombre, apellidos, altura, aula);
+
+			this.mySQLConexion.commit();
+			this.mySQLiteConexion.commit();
 		} catch (SQLException e) {
-			System.out.println("Error obteniendo datos " + e.getLocalizedMessage());
+
+			try {
+				this.mySQLConexion.rollback();
+				this.mySQLiteConexion.rollback();
+			} catch (SQLException e1) {
+				// TODO Auto-generated catch block
+				e1.printStackTrace();
+			}
 		}
+		this.mySQLConexion.setAutoCommit(true);
+		this.mySQLiteConexion.setAutoCommit(true);
 	}
+
+	// Ejercicio 10
+
+
 
 	public void cerrarConexion() {
 		try {
