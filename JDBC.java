@@ -96,8 +96,9 @@ public class JDBC {
 
 		// prueJdbc.Migration(prueJdbc.getCreationQuery());
 
-		//prueJdbc.OverInsert(32, "AulaSinPatatas", 0);
-		prueJdbc.DoubleInsert(30, "Marco", "Polo",190 ,30);
+		// prueJdbc.OverInsert(32, "AulaSinPatatas", 0);
+		//prueJdbc.DoubleInsert(30, "Marco", "Polo", 190, 30);
+		prueJdbc.BusquedaDeAula("");
 
 
 		// Ejercicio 12 //TODO:
@@ -229,13 +230,13 @@ public class JDBC {
 		}
 	}
 
-
 	// Ejercicio 5 sqlite
 
 	public void InsertarDatosAulas(int numero, String nombreAula, int puestos) {
 		try {
 			Statement sta = this.mySQLiteConexion.createStatement();
-			sta.executeUpdate(String.format("INSERT INTO aulas (numero, nombreAula, puestos) VALUES (%d,'%s',%d);", numero, nombreAula, puestos));
+			sta.executeUpdate(String.format("INSERT INTO aulas (numero, nombreAula, puestos) VALUES (%d,'%s',%d);",
+					numero, nombreAula, puestos));
 			System.out.println("Se ha insertado correctamente");
 		} catch (Exception e) {
 			System.out.println(e.getMessage());
@@ -244,10 +245,12 @@ public class JDBC {
 
 	// Ejercicio 6 sqlite
 
-	public void OverInsert(int numero, String nombreAula, int puestos){
+	public void OverInsert(int numero, String nombreAula, int puestos) {
 		try {
 			Statement sta = this.mySQLiteConexion.createStatement();
-			sta.executeUpdate(String.format("INSERT OR REPLACE INTO aulas (numero, nombreAula, puestos) VALUES (%d,'%s',%d);", numero, nombreAula, puestos));
+			sta.executeUpdate(
+					String.format("INSERT OR REPLACE INTO aulas (numero, nombreAula, puestos) VALUES (%d,'%s',%d);",
+							numero, nombreAula, puestos));
 			System.out.println("Se ha insertado correctamente");
 		} catch (Exception e) {
 			System.out.println(e.getMessage());
@@ -256,19 +259,49 @@ public class JDBC {
 
 	// Ejercicio 7 sqlite
 
-	public void DoubleInsert(int codigo, String nombre, String apellidos, int altura, int aula){
+	public void DoubleInsert(int codigo, String nombre, String apellidos, int altura, int aula) {
 		try {
 			Statement staSQL = this.mySQLConexion.createStatement();
 			Statement staLite = this.mySQLiteConexion.createStatement();
-			staSQL.executeUpdate(String.format("INSERT OR REPLACE INTO alumnos (codigo,nombre,apellidos,altura,aula) VALUES (%d,'%s','%s',%d,%d);", codigo, nombre, apellidos, altura, aula));
-			staLite.executeUpdate(String.format("INSERT OR REPLACE INTO alumnos (codigo,nombre,apellidos,altura,aula) VALUES (%d,'%s','%s',%d,%d);", codigo, nombre, apellidos, altura, aula));
+			staSQL.executeUpdate(String.format(
+					"INSERT OR REPLACE INTO alumnos (codigo,nombre,apellidos,altura,aula) VALUES (%d,'%s','%s',%d,%d);",
+					codigo, nombre, apellidos, altura, aula));
+			staLite.executeUpdate(String.format(
+					"INSERT OR REPLACE INTO alumnos (codigo,nombre,apellidos,altura,aula) VALUES (%d,'%s','%s',%d,%d);",
+					codigo, nombre, apellidos, altura, aula));
 			System.out.println("Se han insertado correctamente");
 		} catch (Exception e) {
 			System.out.println(e.getMessage());
 		}
 	}
 
+	// Ejercicio 8 sqlite
 
+	public void BusquedaDeAula(String valor) {
+		try {
+			Statement staSQL = this.mySQLConexion.createStatement();
+			Statement staLite = this.mySQLiteConexion.createStatement();
+			ResultSet resultSQL = staSQL
+					.executeQuery(String.format("SELECT * FROM AULAS WHERE nombreAula like '%s';",  "%" + valor + "%"));
+			ResultSet resultSQLite = staLite
+					.executeQuery(String.format("SELECT * FROM AULAS WHERE nombreAula like '%s';",  "%" + valor + "%"));
+
+			System.out.println("SQL");
+			while (resultSQL.next()) {
+				System.out.printf("%4d|%12s|%4d\n", resultSQL.getInt("numero"), resultSQL.getString("nombreAula"),
+						resultSQL.getInt("puestos"));
+			}
+			System.out.println("---------------------------------------------------------------------");
+			System.out.println("SQLite");
+			while (resultSQLite.next()) {
+				System.out.printf("%4d|%12s|%4d\n", resultSQLite.getInt("numero"), resultSQLite.getString("nombreAula"),
+						resultSQLite.getInt("puestos"));
+			}
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
+		System.out.println("");
+	}
 
 	public void getInfo(String bd) {
 		DatabaseMetaData dbmt;
