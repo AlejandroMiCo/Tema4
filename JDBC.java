@@ -7,6 +7,7 @@ import java.io.InputStream;
 import java.sql.CallableStatement;
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
+import java.sql.Date;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -92,16 +93,17 @@ public class JDBC {
 		// Ejercicio 10
 		// prueJdbc.getDatosFromQuery();
 		prueJdbc.abrirConexion("add", "localhost", "root", null);
-		prueJdbc.abrirConexion2("SQLiteDataBase.sqlite");
+		prueJdbc.abrirConexion2("lite.sqlite");
 
 		// prueJdbc.Migration(prueJdbc.getCreationQuery());
 
 		// prueJdbc.OverInsert(32, "AulaSinPatatas", 0);
 		// prueJdbc.DoubleInsert(30, "Marco", "Polo", 190, 30);
-		prueJdbc.BusquedaDeAula("");
+		// prueJdbc.BusquedaDeAula("");
+
+		prueJdbc.DoubleInsertFechas("apartadoc", "");
 
 		// prueJdbc.DoubleInsertWithRollback(30, "Marco", "Polo", 190, 30);
-
 
 		// Ejercicio 12 //TODO:
 
@@ -284,9 +286,9 @@ public class JDBC {
 			Statement staSQL = this.mySQLConexion.createStatement();
 			Statement staLite = this.mySQLiteConexion.createStatement();
 			ResultSet resultSQL = staSQL
-					.executeQuery(String.format("SELECT * FROM AULAS WHERE nombreAula like '%s';",  "%" + valor + "%"));
+					.executeQuery(String.format("SELECT * FROM AULAS WHERE nombreAula like '%s';", "%" + valor + "%"));
 			ResultSet resultSQLite = staLite
-					.executeQuery(String.format("SELECT * FROM AULAS WHERE nombreAula like '%s';",  "%" + valor + "%"));
+					.executeQuery(String.format("SELECT * FROM AULAS WHERE nombreAula like '%s';", "%" + valor + "%"));
 
 			System.out.println("SQL");
 			while (resultSQL.next()) {
@@ -307,7 +309,8 @@ public class JDBC {
 
 	// Ejercicio 9 sqlite
 
-	public void DoubleInsertWithRollback(int codigo, String nombre, String apellidos, int altura, int aula) throws SQLException {
+	public void DoubleInsertWithRollback(int codigo, String nombre, String apellidos, int altura, int aula)
+			throws SQLException {
 		try {
 			this.mySQLConexion.setAutoCommit(false);
 			this.mySQLiteConexion.setAutoCommit(false);
@@ -322,7 +325,6 @@ public class JDBC {
 				this.mySQLConexion.rollback();
 				this.mySQLiteConexion.rollback();
 			} catch (SQLException e1) {
-				// TODO Auto-generated catch block
 				e1.printStackTrace();
 			}
 		}
@@ -330,10 +332,52 @@ public class JDBC {
 		this.mySQLiteConexion.setAutoCommit(true);
 	}
 
-	// Ejercicio 10
+	// Ejercicio 10 -----Tecnicamente deberia ir, yo solo quiero que den las 10 y
+	// hacerme la cena y las fresitas UwU----
+	public void DoubleInsertFechas(String nombre, Date fecha) {
+		try {
+			Statement staSQL = this.mySQLConexion.createStatement();
+			Statement staLite = this.mySQLiteConexion.createStatement();
+			staSQL.executeUpdate(
+					String.format("INSERT INTO fechas (nombre,fecha) VALUES ('%s','%s');", nombre, fecha.toString()));
+			staLite.executeUpdate(
+					String.format("insert into fechas (nombre, fecha) Values ('%s','%s');", nombre, fecha.toString()));
+			System.out.println("Se han insertado correctamente");
+		} catch (Exception e) {
+			System.out.println(e.getMessage());
+		}
+	}
 
+	public void DoubleInsertFechas(String nombre, String fecha) {
+		try {
+			Statement staSQL = this.mySQLConexion.createStatement();
+			Statement staLite = this.mySQLiteConexion.createStatement();
+			// staSQL.executeUpdate(
+			// String.format("INSERT INTO fechas (nombre,fecha) VALUES ('%s','%s');",
+			// nombre, fecha.toString()));
+			staLite.executeUpdate(
+					String.format("insert into fechas (nombre, fecha) Values ('%s','%s');", nombre, fecha.toString()));
+			System.out.println("Se han insertado correctamente");
+		} catch (Exception e) {
+			System.out.println(e.getMessage());
+		}
+	}
 
+	// apartado b:
+	// Data truncation: Data too long for column 'nombre' at row 1 --> Error en sql
+	// sin parametro, pues varchar(10), en sqlite se inserta sin fallo y con
+	// parametro lo trunca sin mas
 
+	// apartado d:
+	// En los tres casos parece insertarse los datos sin problemas.
+
+	// apartado e:
+	// MySQL suelta error Data truncation: Incorrect datetime value: '' for column
+	// `add`.`fechas`.`fecha` at row 1
+	// , sqlite inserta cadena vacia y con zeroDateTimeBehavior como su nombre
+	// indica convierte el valor a null
+
+	// -------------------------------------------------------------------------------------------------------------------------//
 	public void cerrarConexion() {
 		try {
 			this.mySQLConexion.close();
